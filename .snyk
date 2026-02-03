@@ -1,4 +1,13 @@
 {
   "version": "v1.25.0",
-  "ignore": {}
+  "ignore": {
+    "SNYK-JAVA-ORGSPRINGFRAMEWORKSECURITY-8309135": [
+      {
+        "*": {
+          "reason": "NECESSITA REFACTORING COMPLETO",
+          "expires": "2027-02-03"
+        }
+      }
+    ]
+  }
 }
