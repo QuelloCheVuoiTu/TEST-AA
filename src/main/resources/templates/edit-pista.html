@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>Modifica Pista</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .coordinate-section {
+      background-color: #f8f9fa;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    .form-text {
+      font-size: 0.875em;
+      color: #6c757d;
+    }
+    .form-section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #dee2e6;
+      border-radius: 5px;
+      background-color: #f8f9fa;
+    }
+    .image-gallery {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .current-images {
+      background: #fff;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #dee2e6;
+    }
+    .image-item {
+      position: relative;
+      display: inline-block;
+      margin: 5px;
+    }
+    .video-item {
+      border: 1px solid #dee2e6;
+      border-radius: 5px;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: white;
+    }
+    .event-item {
+      border: 1px solid #dee2e6;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 15px;
+      background: white;
+    }
+    .accordion-button:not(.collapsed) {
+      background-color: #e7f1ff;
+      color: #0c63e4;
+    }
+    .event-image-preview {
+      max-width: 200px;
+      max-height: 150px;
+      object-fit: cover;
+      border-radius: 5px;
+    }
+    .event-filters {
+      background: #fff;
+      padding: 15px;
+      border-radius: 5px;
+      border: 1px solid #dee2e6;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+<div class="container mt-4">
+  <h1>Modifica Pista: <span th:text="${track.nome}"></span></h1>
+
+  <!-- SEZIONE GESTIONE EVENTI (COLLASSABILE) -->
+  <div class="accordion mb-4" id="eventsAccordion">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#eventsCollapse" aria-expanded="false" aria-controls="eventsCollapse">
+          <i class="fas fa-calendar-alt me-2"></i> Gestione Eventi della Pista
+        </button>
+      </h2>
+      <div id="eventsCollapse" class="accordion-collapse collapse" data-bs-parent="#eventsAccordion">
+        <div class="accordion-body">
+
+          <!-- FORM CREAZIONE NUOVO EVENTO -->
+          <div class="form-section">
+            <h5><i class="fas fa-plus-circle me-2"></i>Crea Nuovo Evento</h5>
+            <div class="alert alert-info mb-3">
+              <small>Pista ID: <strong th:text="${track.id}"></strong> - Gli eventi verranno creati per questa pista</small>
+            </div>
+
+            <form id="createEventForm" enctype="multipart/form-data">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="titolo" class="form-label">Titolo Evento *</label>
+                    <input type="text" class="form-control" id="titolo" name="titolo" required>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="data" class="form-label">Data e Ora *</label>
+                    <input type="datetime-local" class="form-control" id="data" name="data" required>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="descrizione" class="form-label">Descrizione</label>
+                <textarea class="form-control" id="descrizione" name="descrizione" rows="3" placeholder="Descrivi l'evento..."></textarea>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="idOrganizzatore" class="form-label">ID Organizzatore *</label>
+                    <input type="number" class="form-control" id="idOrganizzatore" name="idOrganizzatore" value="1" required>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="linkEsterno" class="form-label">Link Esterno (opzionale)</label>
+                    <input type="url" class="form-control" id="linkEsterno" name="linkEsterno" placeholder="https://...">
+                  </div>
+                </div>
+              </div>
+
+              <input type="hidden" id="idPista" name="idPista" th:value="${track.id}">
+
+              <div class="mb-3">
+                <label for="image" class="form-label">Immagine Evento (opzionale)</label>
+                <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                <div class="form-text">Formati supportati: JPG, PNG, GIF</div>
+                <div id="imagePreview" class="mt-2" style="display: none;">
+                  <img id="imagePreviewImg" class="event-image-preview">
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-success">
+                <i class="fas fa-save me-1"></i>Crea Evento
+              </button>
+            </form>
+          </div>
+
+          <!-- LISTA EVENTI ESISTENTI PER QUESTA PISTA -->
+          <div class="mt-4">
+            <h5><i class="fas fa-list me-2"></i>Eventi Esistenti per questa Pista</h5>
+
+            <!-- Filtri Eventi -->
+            <div class="event-filters">
+              <div class="row">
+                <div class="col-md-4">
+                  <label for="filterEventDateFrom" class="form-label">Da data:</label>
+                  <input type="date" class="form-control" id="filterEventDateFrom">
+                </div>
+                <div class="col-md-4">
+                  <label for="filterEventDateTo" class="form-label">A data:</label>
+                  <input type="date" class="form-control" id="filterEventDateTo">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                  <button class="btn btn-outline-primary me-2 w-100" onclick="applyEventFilters()">Filtra</button>
+                  <button class="btn btn-outline-secondary" onclick="clearEventFilters()">Reset</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="eventsListContainer">
+              <!-- Gli eventi verranno caricati dinamicamente via JavaScript -->
+              <div class="text-center py-4">
+                <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+                <p class="text-muted">Caricamento eventi...</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESTANTE CODICE DEL FORM MODIFICA PISTA (rimane invariato) -->
+  <form th:action="@{/pista/{id}/edit(id=${track.id})}" method="post">
+    <input type="hidden" name="id" th:value="${track.id}">
+
+    <h2>Dati Pista</h2>
+    <div class="mb-3">
+      <label for="nome" class="form-label">Nome:</label>
+      <input type="text" class="form-control" id="nome" name="nome" th:value="${track.nome}" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="citta" class="form-label">Città:</label>
+      <input type="text" class="form-control" id="citta" name="citta" th:value="${track.citta}" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="regione" class="form-label">Regione:</label>
+      <input type="text" class="form-control" id="regione" name="regione" th:value="${track.regione}" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="grado" class="form-label">Grado:</label>
+      <input type="text" class="form-control" id="grado" name="grado" th:value="${track.grado}" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="lunghezza" class="form-label">Lunghezza (m):</label>
+      <input type="number" class="form-control" id="lunghezza" name="lunghezza" th:value="${track.lunghezza}" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="capienza" class="form-label">Capienza:</label>
+      <input type="number" class="form-control" id="capienza" name="capienza" th:value="${track.capienza}" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="note" class="form-label">Note:</label>
+      <textarea class="form-control" id="note" name="note" th:text="${track.note}"></textarea>
+    </div>
+
+    <!-- SEZIONE COORDINATE -->
+    <div class="coordinate-section">
+      <h3>Coordinate Geografiche</h3>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="latitudine" class="form-label">Latitudine:</label>
+            <input type="number" step="0.000001" class="form-control" id="latitudine" name="latitudine" th:value="${track.latitudine}" required>
+            <div class="form-text">Esempio: 45.464211 per Milano</div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="longitudine" class="form-label">Longitudine:</label>
+            <input type="number" step="0.000001" class="form-control" id="longitudine" name="longitudine" th:value="${track.longitudine}" required>
+            <div class="form-text">Esempio: 9.191383 per Milano</div>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-info">
+        <small>
+          <strong>Info:</strong> Le coordinate sono utilizzate per mostrare la posizione sulla mappa.
+          Puoi trovare le coordinate su <a href="https://www.google.com/maps" target="_blank">Google Maps</a>
+          facendo clic destro su un punto e selezionando "Cosa c'è qui?".
+        </small>
+      </div>
+    </div>
+
+    <h2>Dati TrackPage</h2>
+
+    <div class="mb-3">
+      <label for="descrizioneTrack" class="form-label">Descrizione:</label>
+      <textarea class="form-control" id="descrizioneTrack" name="descrizione" th:text="${trackPage.descrizione}" rows="4"></textarea>
+      <div class="form-text">Descrizione dettagliata della pista, caratteristiche, storia, etc.</div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <label for="curve" class="form-label">Numero Curve:</label>
+          <input type="number" class="form-control" id="curve" name="curve" th:value="${trackPage.curve}">
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="mb-3">
+          <label for="bestLap" class="form-label">Best Lap (secondi):</label>
+          <input type="number" step="0.001" class="form-control" id="bestLap" name="bestLap" th:value="${trackPage.bestLap}">
+          <div class="form-text">Tempo del giro più veloce registrato</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label for="videoCopertina" class="form-label">Video Copertina (URL):</label>
+      <input type="url" class="form-control" id="videoCopertina" name="videoCopertina" th:value="${trackPage.videoCopertina}">
+      <div class="form-text">Link a un video YouTube o Vimeo della pista</div>
+    </div>
+
+    <!-- SEZIONE GESTIONE GALLERIA IMMAGINI -->
+    <div class="form-section">
+      <h3>Gestione Galleria Immagini</h3>
+
+      <!-- Mappa Attuale -->
+      <div class="current-images mb-4">
+        <h5>Mappa Attuale:</h5>
+        <div id="currentMappaContainer">
+          <div th:if="${trackPage?.mappa}" class="image-item position-relative d-inline-block">
+            <img th:src="${trackPage.mappa}" alt="Mappa corrente" class="img-thumbnail" style="max-width: 300px;">
+            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1" onclick="removeMappa()">×</button>
+          </div>
+          <div th:unless="${trackPage?.mappa}" class="text-muted">Nessuna mappa impostata</div>
+        </div>
+
+        <!-- Aggiorna Mappa -->
+        <div class="mb-3 mt-3">
+          <label class="form-label">Aggiorna Mappa:</label>
+          <input type="file" class="form-control" id="newMappa" accept="image/*">
+          <div class="form-text">Sostituisce la mappa corrente</div>
+          <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="updateMappa()">Aggiorna Mappa</button>
+        </div>
+      </div>
+
+      <!-- Galleria Foto Attuale -->
+      <div class="current-images mb-4">
+        <h5>Galleria Foto Attuale:</h5>
+        <div id="galleryContainer" class="image-gallery mb-3">
+          <div th:each="foto, stat : ${trackPage?.galleriaFoto}" class="image-item position-relative d-inline-block m-2">
+            <img th:src="${foto}" th:alt="'Foto ' + ${stat.index}" class="img-thumbnail" style="max-width: 150px;">
+            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1"
+                    th:attr="data-image-url=${foto}" onclick="removeFotoFromButton(this)">×</button>
+          </div>
+          <div th:if="${trackPage?.galleriaFoto == null or trackPage.galleriaFoto.empty}" class="text-muted">Nessuna foto nella galleria</div>
+        </div>
+
+        <!-- Aggiungi Foto -->
+        <div class="mb-3">
+          <label class="form-label">Aggiungi Foto alla Galleria:</label>
+          <input type="file" class="form-control" id="newFoto" multiple accept="image/*">
+          <div class="form-text">Puoi selezionare più foto contemporaneamente</div>
+          <button type="button" class="btn btn-outline-success btn-sm mt-2" onclick="addFoto()">Aggiungi Foto</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEZIONE GESTIONE GALLERIA VIDEO -->
+    <div class="form-section">
+      <h3>Gestione Galleria Video</h3>
+
+      <!-- Video Attuali -->
+      <div class="current-images mb-4">
+        <h5>Video Attuali:</h5>
+        <div id="videoGalleryContainer" class="mb-3">
+          <div th:each="video, stat : ${trackPage?.galleriaVideo}" class="video-item">
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="flex-grow-1">
+                <a th:href="${video}" target="_blank" th:text="${video}" class="text-break"></a>
+              </div>
+              <button type="button" class="btn btn-danger btn-sm ms-2"
+                      th:attr="data-video-url=${video}" onclick="removeVideoFromButton(this)">Rimuovi</button>
+            </div>
+          </div>
+          <div th:if="${trackPage?.galleriaVideo == null or trackPage.galleriaVideo.empty}" class="text-muted">
+            Nessun video nella galleria
+          </div>
+        </div>
+
+        <!-- Aggiungi Video -->
+        <div class="mb-3">
+          <label class="form-label">Aggiungi Video alla Galleria:</label>
+          <div class="input-group">
+            <input type="url" class="form-control" id="newVideoUrl" placeholder="Incolla link YouTube o Vimeo">
+            <button type="button" class="btn btn-outline-success" onclick="addVideo()">Aggiungi Video</button>
+          </div>
+          <div class="form-text">Incolla il link completo del video (YouTube o Vimeo)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+      <a th:href="@{/pista/{id}(id=${track.id})}" class="btn btn-secondary me-md-2">Annulla</a>
+      <button type="submit" class="btn btn-primary">Salva Modifiche</button>
+    </div>
+  </form>
+</div>
+
+<!-- Modal Modifica Evento -->
+<div class="modal fade" id="editEventModal" tabindex="-1" aria-labelledby="editEventModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editEventModalLabel">Modifica Evento</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editEventForm" enctype="multipart/form-data">
+          <input type="hidden" id="editEventId" name="id">
+          <input type="hidden" id="editIdPista" name="idPista" th:value="${track.id}">
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editTitolo" class="form-label">Titolo Evento *</label>
+                <input type="text" class="form-control" id="editTitolo" name="titolo" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editData" class="form-label">Data e Ora *</label>
+                <input type="datetime-local" class="form-control" id="editData" name="data" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="editDescrizione" class="form-label">Descrizione</label>
+            <textarea class="form-control" id="editDescrizione" name="descrizione" rows="3" placeholder="Descrivi l'evento..."></textarea>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editIdOrganizzatore" class="form-label">ID Organizzatore *</label>
+                <input type="number" class="form-control" id="editIdOrganizzatore" name="idOrganizzatore" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editLinkEsterno" class="form-label">Link Esterno (opzionale)</label>
+                <input type="url" class="form-control" id="editLinkEsterno" name="linkEsterno" placeholder="https://...">
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="editImage" class="form-label">Immagine Evento (opzionale)</label>
+            <input type="file" class="form-control" id="editImage" name="image" accept="image/*">
+            <div class="form-text">Lascia vuoto per mantenere l'immagine attuale</div>
+            <div id="editImagePreview" class="mt-2">
+              <img id="editImagePreviewImg" class="event-image-preview" style="display: none;">
+              <div id="currentImageInfo" class="text-muted small"></div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+        <button type="button" class="btn btn-primary" onclick="updateEvent()">Salva Modifiche</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // CARICAMENTO EVENTI ALL'APERTURA DELLA PAGINA
+  document.addEventListener('DOMContentLoaded', function() {
+    loadEventsForTrack();
+
+    // Imposta la data minima come oggi per i nuovi eventi
+    const today = new Date().toISOString().slice(0, 16);
+    document.getElementById('data').min = today;
+
+    // Imposta la data di oggi come default per il filtro "Da"
+    const todayDate = new Date().toISOString().split('T')[0];
+    document.getElementById('filterEventDateFrom').value = todayDate;
+  });
+
+  // CARICA GLI EVENTI PER LA PISTA CORRENTE
+  function loadEventsForTrack() {
+    const trackId = [[${track.id}]];
+    const eventsContainer = document.getElementById('eventsListContainer');
+
+    // Mostra loading
+    eventsContainer.innerHTML = `
+      <div class="text-center py-4">
+        <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+        <p class="text-muted">Caricamento eventi...</p>
+      </div>
+    `;
+
+    // Carica tutti gli eventi e filtra per pista
+    fetch('/api/events')
+            .then(response => response.json())
+            .then(allEvents => {
+              // Filtra solo gli eventi di questa pista
+              const trackEvents = allEvents.filter(event => event.idPista == trackId);
+
+              if (trackEvents.length === 0) {
+                eventsContainer.innerHTML = `
+            <div class="text-center py-4">
+              <i class="fas fa-calendar-times fa-2x text-muted mb-3"></i>
+              <p class="text-muted">Nessun evento programmato per questa pista</p>
+            </div>
+          `;
+                return;
+              }
+
+              // Ordina per data (più recenti prima)
+              trackEvents.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+              // Aggiorna il contatore
+              const alertElement = document.querySelector('#eventsCollapse .alert-success');
+              if (!alertElement) {
+                // Crea l'alert se non esiste
+                const eventsTitle = document.querySelector('#eventsCollapse h5');
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success mb-3';
+                alertDiv.innerHTML = `<small>Trovati <strong>${trackEvents.length}</strong> eventi per questa pista</small>`;
+                eventsTitle.parentNode.insertBefore(alertDiv, eventsTitle.nextSibling);
+              } else {
+                alertElement.querySelector('strong').textContent = trackEvents.length;
+              }
+
+              // Renderizza gli eventi
+              renderEvents(trackEvents);
+            })
+            .catch(error => {
+              console.error('Errore nel caricamento degli eventi:', error);
+              eventsContainer.innerHTML = `
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Errore nel caricamento degli eventi
+          </div>
+        `;
+            });
+  }
+
+  // RENDERIZZA GLI EVENTI NELLA PAGINA
+  function renderEvents(events) {
+    const eventsContainer = document.getElementById('eventsListContainer');
+
+    if (events.length === 0) {
+      eventsContainer.innerHTML = `
+        <div class="text-center py-4">
+          <i class="fas fa-calendar-times fa-2x text-muted mb-3"></i>
+          <p class="text-muted">Nessun evento trovato</p>
+        </div>
+      `;
+      return;
+    }
+
+    let html = '';
+    events.forEach(event => {
+      const eventDate = new Date(event.data);
+      const formattedDate = eventDate.toLocaleDateString('it-IT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      html += `
+        <div class="event-item" data-event-date="${eventDate.toISOString().split('T')[0]}">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+              <h6>${event.titolo || 'Nessun titolo'}</h6>
+              <p class="mb-1 small">${event.descrizione || 'Nessuna descrizione'}</p>
+              <p class="mb-1 small text-muted">
+                <strong>Data:</strong>
+                <span class="event-date">${formattedDate}</span>
+              </p>
+              <p class="mb-1 small text-muted">
+                <strong>Organizzatore ID:</strong>
+                <span>${event.idOrganizzatore || 'N/D'}</span>
+              </p>
+              <p class="mb-1 small text-muted">
+                <strong>Evento ID:</strong>
+                <span>${event.id}</span>
+              </p>
+              ${event.linkEsterno ? `
+                <p class="mb-1 small">
+                  <strong>Link:</strong>
+                  <a href="${event.linkEsterno}" target="_blank">${event.linkEsterno}</a>
+                </p>
+              ` : ''}
+              ${event.foto ? `
+                <div class="mt-2">
+                  <p class="mb-1 small"><strong>Immagine Evento:</strong></p>
+                  <img src="${event.foto}"
+                       alt="${event.titolo || 'Evento'}"
+                       class="event-image-preview"
+                       onerror="imgErrorHandler(this)"
+                       onload="imgLoadHandler(this)" />
+                  <div class="img-debug small text-muted mt-1"></div>
+                </div>
+              ` : `
+                <div class="mt-2">
+                  <span class="badge bg-secondary">Nessuna immagine</span>
+                </div>
+              `}
+            </div>
+            <div class="ms-3">
+              <a href="/event/view/${event.id}"
+                 class="btn btn-outline-primary btn-sm mb-1"
+                 target="_blank">
+                <i class="fas fa-eye"></i> Dettagli
+              </a>
+              <br>
+              <button type="button" class="btn btn-outline-warning btn-sm mb-1"
+                      data-event-id="${event.id}"
+                      onclick="openEditEventModal(this)">
+                <i class="fas fa-edit"></i> Modifica
+              </button>
+              <br>
+              <button type="button" class="btn btn-outline-danger btn-sm mt-1"
+                      data-event-id="${event.id}" onclick="deleteEvent(this)">
+                <i class="fas fa-trash"></i> Elimina
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    eventsContainer.innerHTML = html;
+  }
+
+  // FILTRI EVENTI
+  function applyEventFilters() {
+    const dateFrom = document.getElementById('filterEventDateFrom').value;
+    const dateTo = document.getElementById('filterEventDateTo').value;
+
+    const eventItems = document.querySelectorAll('#eventsListContainer .event-item');
+    let visibleCount = 0;
+
+    eventItems.forEach(item => {
+      const eventDate = item.getAttribute('data-event-date');
+      let showEvent = true;
+
+      if (dateFrom && eventDate < dateFrom) {
+        showEvent = false;
+      }
+
+      if (dateTo && eventDate > dateTo) {
+        showEvent = false;
+      }
+
+      item.style.display = showEvent ? 'block' : 'none';
+      if (showEvent) visibleCount++;
+    });
+
+    // Aggiorna il contatore
+    const alertElement = document.querySelector('#eventsCollapse .alert-success strong');
+    if (alertElement) {
+      alertElement.textContent = visibleCount;
+    }
+  }
+
+  function clearEventFilters() {
+    document.getElementById('filterEventDateFrom').value = '';
+    document.getElementById('filterEventDateTo').value = '';
+
+    const eventItems = document.querySelectorAll('#eventsListContainer .event-item');
+    eventItems.forEach(item => {
+      item.style.display = 'block';
+    });
+
+    // Ripristina il contatore originale
+    const alertElement = document.querySelector('#eventsCollapse .alert-success strong');
+    if (alertElement) {
+      // Ricarica il conteggio originale
+      loadEventsForTrack();
+    }
+  }
+
+  // RESTANTE CODICE JAVASCRIPT (rimane invariato)
+  function imgErrorHandler(img) {
+    const debugElement = img.parentNode.querySelector('.img-debug');
+    if (debugElement) {
+      debugElement.innerText = "Errore nel caricamento dell'immagine";
+      debugElement.style.color = "red";
+    }
+    img.style.border = "2px solid red";
+  }
+
+  function imgLoadHandler(img) {
+    const debugElement = img.parentNode.querySelector('.img-debug');
+    if (debugElement) {
+      debugElement.innerText = "Immagine caricata correttamente";
+      debugElement.style.color = "green";
+    }
+    img.style.border = "2px solid green";
+  }
+
+  // Preview immagine evento
+  document.getElementById('image').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('imagePreview');
+    const previewImg = document.getElementById('imagePreviewImg');
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewImg.src = e.target.result;
+        preview.style.display = 'block';
+      }
+      reader.readAsDataURL(file);
+    } else {
+      preview.style.display = 'none';
+    }
+  });
+
+  // Creazione evento con JavaScript
+  document.getElementById('createEventForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    console.log('Creazione evento per pista ID:', [[${track.id}]]);
+
+    fetch('/test/event-with-image', {
+      method: 'POST',
+      body: formData
+    })
+            .then(response => {
+              if (response.ok) {
+                alert('Evento creato con successo!');
+                location.reload();
+              } else {
+                throw new Error('Errore nella creazione dell\'evento');
+              }
+            })
+            .catch(error => {
+              console.error('Errore:', error);
+              alert('Errore nella creazione dell\'evento: ' + error.message);
+            });
+  });
+
+  // Apertura modal modifica evento
+  function openEditEventModal(button) {
+    const eventId = button.getAttribute('data-event-id');
+
+    // Carica i dati dell'evento
+    fetch('/api/events/' + eventId)
+            .then(response => response.json())
+            .then(event => {
+              if (event) {
+                // Popola il form di modifica
+                document.getElementById('editEventId').value = event.id;
+                document.getElementById('editTitolo').value = event.titolo || '';
+                document.getElementById('editDescrizione').value = event.descrizione || '';
+                document.getElementById('editIdOrganizzatore').value = event.idOrganizzatore || '';
+                document.getElementById('editLinkEsterno').value = event.linkEsterno || '';
+
+                // Formatta la data per l'input datetime-local
+                if (event.data) {
+                  const eventDate = new Date(event.data);
+                  const formattedDate = eventDate.toISOString().slice(0, 16);
+                  document.getElementById('editData').value = formattedDate;
+                }
+
+                // Gestisci l'immagine corrente
+                const currentImageInfo = document.getElementById('currentImageInfo');
+                const editImagePreviewImg = document.getElementById('editImagePreviewImg');
+
+                if (event.foto) {
+                  currentImageInfo.innerHTML = `<strong>Immagine attuale:</strong> <a href="${event.foto}" target="_blank">Visualizza</a>`;
+                  editImagePreviewImg.src = event.foto;
+                  editImagePreviewImg.style.display = 'block';
+                } else {
+                  currentImageInfo.innerHTML = '<strong>Nessuna immagine attuale</strong>';
+                  editImagePreviewImg.style.display = 'none';
+                }
+
+                // Mostra il modal
+                const editModal = new bootstrap.Modal(document.getElementById('editEventModal'));
+                editModal.show();
+              } else {
+                throw new Error('Evento non trovato');
+              }
+            })
+            .catch(error => {
+              console.error('Errore:', error);
+              alert('Errore nel caricamento dell\'evento: ' + error.message);
+            });
+  }
+
+  // Aggiornamento evento
+  function updateEvent() {
+    const formData = new FormData(document.getElementById('editEventForm'));
+    const eventId = document.getElementById('editEventId').value;
+
+    fetch('/api/events/' + eventId, {
+      method: 'PUT',
+      body: formData
+    })
+            .then(response => {
+              if (response.ok) {
+                alert('Evento aggiornato con successo!');
+                // Chiudi il modal e ricarica la pagina
+                const editModal = bootstrap.Modal.getInstance(document.getElementById('editEventModal'));
+                editModal.hide();
+                location.reload();
+              } else {
+                throw new Error('Errore nell\'aggiornamento dell\'evento');
+              }
+            })
+            .catch(error => {
+              console.error('Errore:', error);
+              alert('Errore nell\'aggiornamento dell\'evento: ' + error.message);
+            });
+  }
+
+  // Elimina evento
+  function deleteEvent(button) {
+    const eventId = button.getAttribute('data-event-id');
+
+    if (!confirm('Sei sicuro di voler eliminare questo evento?')) {
+      return;
+    }
+
+    // Prima otteniamo il mongoId dell'evento
+    fetch('/api/events/' + eventId)
+            .then(response => response.json())
+            .then(event => {
+              if (event && event.mongoId) {
+                return fetch('/api/events/' + event.mongoId, {
+                  method: 'DELETE'
+                });
+              } else {
+                throw new Error('Evento non trovato');
+              }
+            })
+            .then(response => {
+              if (response.ok) {
+                alert('Evento eliminato con successo!');
+                location.reload();
+              } else {
+                throw new Error('Errore nell\'eliminazione');
+              }
+            })
+            .catch(error => {
+              console.error('Errore:', error);
+              alert('Errore nell\'eliminazione dell\'evento: ' + error.message);
+            });
+  }
+
+  // Filtri eventi
+  function applyEventFilters() {
+    const dateFrom = document.getElementById('filterEventDateFrom').value;
+    const dateTo = document.getElementById('filterEventDateTo').value;
+
+    const eventItems = document.querySelectorAll('#eventsListContainer .event-item');
+    let visibleCount = 0;
+
+    eventItems.forEach(item => {
+      const eventDate = item.getAttribute('data-event-date');
+      let showEvent = true;
+
+      if (dateFrom && eventDate < dateFrom) {
+        showEvent = false;
+      }
+
+      if (dateTo && eventDate > dateTo) {
+        showEvent = false;
+      }
+
+      item.style.display = showEvent ? 'block' : 'none';
+      if (showEvent) visibleCount++;
+    });
+
+    // Aggiorna il contatore
+    const alertElement = document.querySelector('#eventsCollapse .alert-success strong');
+    if (alertElement) {
+      alertElement.textContent = visibleCount;
+    }
+  }
+
+  function clearEventFilters() {
+    document.getElementById('filterEventDateFrom').value = '';
+    document.getElementById('filterEventDateTo').value = '';
+
+    const eventItems = document.querySelectorAll('#eventsListContainer .event-item');
+    eventItems.forEach(item => {
+      item.style.display = 'block';
+    });
+
+    // Ripristina il contatore originale
+    const alertElement = document.querySelector('#eventsCollapse .alert-success strong');
+    if (alertElement) {
+      alertElement.textContent = [[${events != null ? events.size() : 0}]];
+    }
+  }
+
+  // Validazione coordinate
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const latInput = document.getElementById('latitudine');
+    const lonInput = document.getElementById('longitudine');
+
+    form.addEventListener('submit', function(e) {
+      const lat = parseFloat(latInput.value);
+      const lon = parseFloat(lonInput.value);
+
+      if (lat < -90 || lat > 90) {
+        alert('La latitudine deve essere compresa tra -90 e 90 gradi');
+        e.preventDefault();
+        return;
+      }
+
+      if (lon < -180 || lon > 180) {
+        alert('La longitudine deve essere compresa tra -180 e 180 gradi');
+        e.preventDefault();
+        return;
+      }
+
+      if (lat < 35 || lat > 48) {
+        if (!confirm('La latitudine inserita sembra fuori dall\'Italia. Sei sicuro?')) {
+          e.preventDefault();
+          return;
+        }
+      }
+
+      if (lon < 6 || lon > 19) {
+        if (!confirm('La longitudine inserita sembra fuori dall\'Italia. Sei sicuro?')) {
+          e.preventDefault();
+          return;
+        }
+      }
+    });
+
+    // Imposta la data minima come oggi per i nuovi eventi
+    const today = new Date().toISOString().slice(0, 16);
+    document.getElementById('data').min = today;
+
+    // Imposta la data di oggi come default per il filtro "Da"
+    const todayDate = new Date().toISOString().split('T')[0];
+    document.getElementById('filterEventDateFrom').value = todayDate;
+  });
+
+  // FUNZIONI GALLERIA IMMAGINI
+  function addFoto() {
+    const fileInput = document.getElementById('newFoto');
+    const files = fileInput.files;
+
+    if (files.length === 0) {
+      alert('Seleziona almeno una foto');
+      return;
+    }
+
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+      formData.append('foto', files[i]);
+    }
+
+    fetch(`/trackpage/${[[${track.id}]]}/add-foto`, {
+      method: 'POST',
+      body: formData
+    })
+            .then(response => response.json())
+            .then(data => {
+              alert('Foto aggiunte con successo!');
+              location.reload();
+            })
+            .catch(error => {
+              console.error('Errore:', error);
+              alert('Errore nell\'aggiunta delle foto');
+            });
+  }
+
+  function updateMappa() {
+    const fileInput = document.getElementById('newMappa');
+    const file = fileInput.files[0];
+
+    if (!file) {
+      alert('Seleziona una mappa');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('mappa', file);
+
+    fetch(`/trackpage/${[[${track.id}]]}/update-mappa`, {
+      method: 'POST',
+      body: formData
+    })
+            .then(response => response.json())
+            .then(data => {
+              alert('Mappa aggiornata con successo!');
+              location.reload();
+            })
+            .catch(error => {
+              console.error('Errore:', error);
+              alert('Errore nell\'aggiornamento della mappa');
+            });
+  }
+
+  function removeFoto(imageUrl) {
+    if (!confirm('Sei sicuro di voler rimuovere questa foto?')) {
+      return;
+    }
+
+    fetch(`/trackpage/${[[${track.id}]]}/remove-foto?imageUrl=${encodeURIComponent(imageUrl)}`, {
+      method: 'DELETE'
+    })
+            .then(response => response.json())
+            .then(data => {
+              alert('Foto rimossa con successo!');
+              location.reload();
+            })
+            .catch(error => {
+              console.error('Errore:', error);
+              alert('Errore nella rimozione della foto');
+            });
+  }
+
+  function removeFotoFromButton(button) {
+    const imageUrl = button.getAttribute('data-image-url');
+    removeFoto(imageUrl);
+  }
+
+  function removeMappa() {
+    if (!confirm('Sei sicuro di voler rimuovere la mappa?')) {
+      return;
+    }
+
+    fetch(`/trackpage/${[[${track.id}]]}/remove-mappa`, {
+      method: 'DELETE'
+    })
+            .then(response => response.json())
+            .then(data => {
+              alert('Mappa rimossa con successo!');
+              location.reload();
+            })
+            .catch(error => {
+              console.error('Errore:', error);
+              alert('Errore nella rimozione della mappa');
+            });
+  }
+
+  // FUNZIONI GALLERIA VIDEO
+  function addVideo() {
+    const videoUrl = document.getElementById('newVideoUrl').value.trim();
+
+    if (!videoUrl) {
+      alert('Inserisci un link video');
+      return;
+    }
+
+    if (!videoUrl.startsWith('http')) {
+      alert('Inserisci un URL valido (deve iniziare con http o https)');
+      return;
+    }
+
+    fetch(`/trackpage/${[[${track.id}]]}/add-video`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ videoUrl: videoUrl })
+    })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Errore nel server');
+              }
+              return response.json();
+            })
+            .then(data => {
+              alert('Video aggiunto con successo!');
+              updateVideoGallery(data.galleriaVideo);
+              document.getElementById('newVideoUrl').value = '';
+            })
+            .catch(error => {
+              console.error('Errore:', error);
+              alert('Errore nell\'aggiunta del video');
+            });
+  }
+
+  function removeVideo(videoUrl) {
+    if (!confirm('Sei sicuro di voler rimuovere questo video?')) {
+      return;
+    }
+
+    fetch(`/trackpage/${[[${track.id}]]}/remove-video`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ videoUrl: videoUrl })
+    })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Errore nel server');
+              }
+              return response.json();
+            })
+            .then(data => {
+              alert('Video rimosso con successo!');
+              updateVideoGallery(data.galleriaVideo);
+            })
+            .catch(error => {
+              console.error('Errore:', error);
+              alert('Errore nella rimozione del video');
+            });
+  }
+
+  function removeVideoFromButton(button) {
+    const videoUrl = button.getAttribute('data-video-url');
+    removeVideo(videoUrl);
+  }
+
+  function updateVideoGallery(videoUrls) {
+    const videoGalleryContainer = document.getElementById('videoGalleryContainer');
+
+    if (!videoUrls || videoUrls.length === 0) {
+      videoGalleryContainer.innerHTML = '<div class="text-muted">Nessun video nella galleria</div>';
+      return;
+    }
+
+    let html = '';
+    videoUrls.forEach((videoUrl, index) => {
+      html += `
+        <div class="video-item">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="flex-grow-1">
+              <a href="${videoUrl}" target="_blank" class="text-break">${videoUrl}</a>
+            </div>
+            <button type="button" class="btn btn-danger btn-sm ms-2"
+                    data-video-url="${videoUrl}" onclick="removeVideoFromButton(this)">Rimuovi</button>
+          </div>
+        </div>
+      `;
+    });
+
+    videoGalleryContainer.innerHTML = html;
+  }
+</script>
+</body>
+</html>

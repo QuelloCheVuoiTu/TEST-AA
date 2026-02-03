@@ -1,0 +1,43 @@
+<!-- File: src/main/resources/templates/view-event-image.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Visualizza Evento con Immagine</title>
+    <script>
+        function imgErrorHandler(img) {
+            document.getElementById('imgDebug').innerText = "Errore nel caricamento dell'immagine: " + img.src;
+            img.style.border = "2px solid red";
+        }
+        function imgLoadHandler(img) {
+            document.getElementById('imgDebug').innerText = "Immagine caricata correttamente da: " + img.src;
+            img.style.border = "2px solid green";
+        }
+    </script>
+</head>
+<body>
+<h2>Dettagli Evento</h2>
+<div th:if="${event != null}">
+    <p><strong>ID:</strong> <span th:text="${event.id}"></span></p>
+    <p><strong>Titolo:</strong> <span th:text="${event.titolo}"></span></p>
+    <p><strong>Descrizione:</strong> <span th:text="${event.descrizione}"></span></p>
+    <p><strong>Data:</strong> <span th:text="${event.data}"></span></p>
+    <p><strong>Organizzatore:</strong> <span th:text="${event.idOrganizzatore}"></span></p>
+    <p><strong>Pista:</strong> <span th:text="${event.idPista}"></span></p>
+    <div th:if="${event.foto != null}">
+        <p><strong>URL immagine:</strong> <span th:text="${event.foto}"></span></p>
+        <img th:src="${event.foto}"
+             alt="Immagine evento"
+             style="max-width:400px;"
+             onerror="imgErrorHandler(this)"
+             onload="imgLoadHandler(this)" />
+        <div id="imgDebug" style="margin-top:10px;color:blue;"></div>
+    </div>
+    <div th:if="${event.foto == null}">
+        <p>Nessuna immagine disponibile.</p>
+    </div>
+</div>
+<div th:if="${event == null}">
+    <p>Nessun evento da visualizzare.</p>
+</div>
+</body>
+</html>
