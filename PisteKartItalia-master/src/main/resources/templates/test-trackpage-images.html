@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Gestione Immagini TrackPage</title>
+    <style>
+        .image-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .image-gallery img {
+            max-width: 200px;
+            max-height: 150px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .form-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .current-images {
+            background: #f9f9f9;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .image-item {
+            position: relative;
+            display: inline-block;
+            margin: 5px;
+        }
+        .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: red;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<h2>Gestione Immagini TrackPage</h2>
+
+<!-- Selettore TrackPage esistente -->
+<div class="form-section">
+    <h3>Seleziona TrackPage</h3>
+    <label>ID Track:
+        <input type="number" id="selectedIdTrack" placeholder="Inserisci ID Track" />
+        <button type="button" onclick="loadTrackPage()">Carica TrackPage</button>
+    </label>
+</div>
+
+<!-- TrackPage caricata -->
+<div id="trackPageInfo" style="display: none;" class="current-images">
+    <h3>TrackPage: <span id="trackPageId"></span></h3>
+
+    <!-- Galleria Foto corrente -->
+    <div id="currentGallery">
+        <h4>Galleria Foto Corrente:</h4>
+        <div id="galleryContainer" class="image-gallery">
+            <!-- Le immagini verranno caricate qui -->
+        </div>
+    </div>
+
+    <!-- Mappa corrente -->
+    <div id="currentMappa">
+        <h4>Mappa Corrente:</h4>
+        <div id="mappaContainer">
+            <!-- La mappa verrà caricata qui -->
+        </div>
+    </div>
+</div>
+
+<!-- Aggiungi foto alla galleria -->
+<div class="form-section">
+    <h3>Aggiungi Foto alla Galleria</h3>
+    <form id="addFotoForm">
+        <label>Nuove Foto:
+            <input type="file" id="newFoto" multiple accept="image/*" />
+        </label><br/>
+        <button type="button" onclick="addFoto()">Aggiungi Foto</button>
+    </form>
+</div>
+
+<!-- Aggiorna mappa -->
+<div class="form-section">
+    <h3>Aggiorna Mappa</h3>
+    <form id="updateMappaForm">
+        <label>Nuova Mappa:
+            <input type="file" id="newMappa" accept="image/*" />
+        </label><br/>
+        <button type="button" onclick="updateMappa()">Aggiorna Mappa</button>
+    </form>
+</div>
+
+<script>
+    let currentTrackPage = null;
+
+    // Carica TrackPage esistente
+    function loadTrackPage() {
+        const idTrack = document.getElementById('selectedIdTrack').value;
+        if (!idTrack) {
+            alert('Inserisci un ID Track valido');
+            return;
+        }
+
+        fetch(`/api/trackpages/track/${idTrack}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('TrackPage non trovata');
+                }
+                return response.json();
+            })
+            .then(data => {
+                currentTrackPage = data;
+                displayTrackPage(data);
+            })
+            .catch(error => {
+                console.error('Errore:', error);
+                alert('TrackPage non trovata per ID: ' + idTrack);
+            });
+    }
+
+    // Mostra TrackPage corrente
+    function displayTrackPage(trackPage) {
+        document.getElementById('trackPageInfo').style.display = 'block';
+        document.getElementById('trackPageId').textContent = trackPage.idTrack;
+
+        // Mostra galleria foto
+        const galleryContainer = document.getElementById('galleryContainer');
+        galleryContainer.innerHTML = '';
+
+        if (trackPage.galleriaFoto && trackPage.galleriaFoto.length > 0) {
+            trackPage.galleriaFoto.forEach((foto, index) => {
+                const imageItem = document.createElement('div');
+                imageItem.className = 'image-item';
+                imageItem.innerHTML = `
+                    <img src="${foto}" alt="Foto ${index}" />
+                    <button class="remove-btn" onclick="removeFoto('${foto}')">×</button>
+                `;
+                galleryContainer.appendChild(imageItem);
+            });
+        } else {
+            galleryContainer.innerHTML = '<p>Nessuna foto nella galleria</p>';
+        }
+
+        // Mostra mappa
+        const mappaContainer = document.getElementById('mappaContainer');
+        mappaContainer.innerHTML = '';
+
+        if (trackPage.mappa) {
+            mappaContainer.innerHTML = `
+                <div class="image-item">
+                    <img src="${trackPage.mappa}" alt="Mappa" style="max-width: 400px;" />
+                    <button class="remove-btn" onclick="removeMappa()">×</button>
+                </div>
+            `;
+        } else {
+            mappaContainer.innerHTML = '<p>Nessuna mappa impostata</p>';
+        }
+    }
+
+    // Aggiungi foto alla galleria
+    function addFoto() {
+        if (!currentTrackPage) {
+            alert('Prima carica una TrackPage');
+            return;
+        }
+
+        const fileInput = document.getElementById('newFoto');
+        const formData = new FormData();
+
+        for (let i = 0; i < fileInput.files.length; i++) {
+            formData.append('foto', fileInput.files[i]);
+        }
+
+        fetch(`/trackpage/${currentTrackPage.idTrack}/add-foto`, {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                alert('Foto aggiunte con successo!');
+                currentTrackPage = data;
+                displayTrackPage(data);
+                document.getElementById('newFoto').value = ''; // Reset input
+            })
+            .catch(error => {
+                console.error('Errore:', error);
+                alert('Errore nell\'aggiunta delle foto');
+            });
+    }
+
+    // Aggiorna mappa
+    function updateMappa() {
+        if (!currentTrackPage) {
+            alert('Prima carica una TrackPage');
+            return;
+        }
+
+        const fileInput = document.getElementById('newMappa');
+        const formData = new FormData();
+
+        formData.append('mappa', fileInput.files[0]);
+
+        fetch(`/trackpage/${currentTrackPage.idTrack}/update-mappa`, {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                alert('Mappa aggiornata con successo!');
+                currentTrackPage = data;
+                displayTrackPage(data);
+                document.getElementById('newMappa').value = ''; // Reset input
+            })
+            .catch(error => {
+                console.error('Errore:', error);
+                alert('Errore nell\'aggiornamento della mappa');
+            });
+    }
+
+    // Rimuovi foto dalla galleria
+    function removeFoto(imageUrl) {
+        if (!currentTrackPage) return;
+
+        if (confirm('Sei sicuro di voler rimuovere questa foto?')) {
+            fetch(`/trackpage/${currentTrackPage.idTrack}/remove-foto?imageUrl=${encodeURIComponent(imageUrl)}`, {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert('Foto rimossa con successo!');
+                    currentTrackPage = data;
+                    displayTrackPage(data);
+                })
+                .catch(error => {
+                    console.error('Errore:', error);
+                    alert('Errore nella rimozione della foto');
+                });
+        }
+    }
+
+    // Rimuovi mappa
+    function removeMappa() {
+        if (!currentTrackPage) return;
+
+        if (confirm('Sei sicuro di voler rimuovere la mappa?')) {
+            fetch(`/trackpage/${currentTrackPage.idTrack}/remove-mappa`, {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert('Mappa rimossa con successo!');
+                    currentTrackPage = data;
+                    displayTrackPage(data);
+                })
+                .catch(error => {
+                    console.error('Errore:', error);
+                    alert('Errore nella rimozione della mappa');
+                });
+        }
+    }
+</script>
+</body>
+</html>

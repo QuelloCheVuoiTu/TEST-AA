@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-4">
+  <h1>Admin Panel</h1>
+
+  <!-- DEBUG -->
+  <div class="alert alert-info">
+    Tracks: <span th:text="${tracks.size()}">0</span> |
+    Events: <span th:text="${events.size()}">0</span> |
+    Promoted Events: <span th:text="${promotedEvents.size()}">0</span> |
+    Promoted Videos: <span th:text="${promotedVideos.size()}">0</span>
+  </div>
+
+  <!-- SEZIONE 1: Creazione Track -->
+  <div class="card mt-3">
+    <div class="card-header">
+      <h5>Crea Nuova Pista</h5>
+    </div>
+    <div class="card-body">
+      <form id="createTrackForm">
+        <input type="text" id="trackNome" placeholder="Nome" required class="form-control mb-2">
+        <input type="text" id="trackCitta" placeholder="Città" required class="form-control mb-2">
+        <input type="text" id="trackRegione" placeholder="Regione" required class="form-control mb-2">
+        <button type="submit" class="btn btn-primary">Crea</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- SEZIONE 2: Gestione Video -->
+  <div class="card mt-3">
+    <div class="card-header">
+      <h5>Gestione Video Homepage</h5>
+    </div>
+    <div class="card-body">
+      <input type="url" id="videoLink" placeholder="Link video" class="form-control mb-2">
+      <button onclick="addPromotedVideo()" class="btn btn-success">Aggiungi Video</button>
+
+      <div class="mt-3">
+        <h6>Video Promossi:</h6>
+        <div id="promotedVideosList">
+          <div th:each="video : ${promotedVideos}" class="border p-2 mb-2">
+            <div class="d-flex justify-content-between align-items-center">
+              <a th:href="${video}" target="_blank" th:text="${video}"></a>
+              <button class="btn btn-sm btn-outline-danger remove-video-btn"
+                      th:attr="data-video-link=${video}">
+                Rimuovi
+              </button>
+            </div>
+          </div>
+          <div th:if="${promotedVideos.empty}" class="text-muted">
+            Nessun video promosso
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEZIONE 3: Eventi Attualmente Promossi -->
+  <div class="card mt-3">
+    <div class="card-header bg-success text-white">
+      <h5 class="mb-0">Eventi Attualmente Promossi in Homepage</h5>
+    </div>
+    <div class="card-body">
+      <div id="promotedEventsList">
+        <div th:each="event : ${promotedEvents}" class="border p-3 mb-2 promoted-event-item" style="border-left: 4px solid #28a745 !important;">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+              <h6 th:text="${event.titolo}"></h6>
+              <p class="mb-1 small" th:text="${event.descrizione}"></p>
+              <p class="mb-1 small text-muted">
+                <strong>Data:</strong>
+                <span th:text="${#temporals.format(event.data, 'dd/MM/yyyy HH:mm')}"></span>
+              </p>
+              <p class="mb-0 small text-muted">
+                <strong>Pista ID:</strong>
+                <span th:text="${event.idPista}"></span> |
+                <strong>Evento ID:</strong>
+                <span th:text="${event.id}"></span>
+              </p>
+            </div>
+            <button class="btn btn-sm btn-outline-danger remove-promoted-event-btn"
+                    th:attr="data-event-id=${event.id}">
+              Rimuovi
+            </button>
+          </div>
+        </div>
+        <div th:if="${promotedEvents.empty}" class="text-muted">
+          Nessun evento attualmente promosso in homepage
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEZIONE 4: Eventi con Filtri -->
+  <div class="card mt-3">
+    <div class="card-header">
+      <h5>Tutti gli Eventi</h5>
+    </div>
+    <div class="card-body">
+      <!-- Filtri -->
+      <div class="row mb-3">
+        <div class="col-md-3">
+          <label for="filterDateFrom" class="form-label">Da data:</label>
+          <input type="date" class="form-control" id="filterDateFrom">
+        </div>
+        <div class="col-md-3">
+          <label for="filterDateTo" class="form-label">A data:</label>
+          <input type="date" class="form-control" id="filterDateTo">
+        </div>
+        <div class="col-md-3">
+          <label for="filterTrack" class="form-label">Pista:</label>
+          <select class="form-select" id="filterTrack">
+            <option value="">Tutte le piste</option>
+            <option th:each="track : ${tracks}" th:value="${track.id}" th:text="${track.nome}"></option>
+          </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+          <button class="btn btn-outline-primary me-2 w-100" onclick="applyFilters()">Applica Filtri</button>
+        </div>
+        <div class="col-md-12 mt-2">
+          <button class="btn btn-outline-secondary" onclick="clearFilters()">Reset Filtri</button>
+        </div>
+      </div>
+
+      <!-- Lista Eventi -->
+      <div id="eventsList">
+        <div th:each="event : ${events}" class="border p-3 mb-2 event-item">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+              <h6 th:text="${event.titolo}"></h6>
+              <p class="mb-1 small" th:text="${event.descrizione}"></p>
+              <p class="mb-1 small text-muted">
+                <strong>Data:</strong>
+                <span class="event-date" th:text="${#temporals.format(event.data, 'dd/MM/yyyy HH:mm')}"></span>
+              </p>
+              <p class="mb-1 small text-muted">
+                <strong>Pista:</strong>
+                <span class="event-track-name">
+                                    <!-- Versione sicura senza trackNames -->
+                                    <span th:each="track : ${tracks}" th:if="${track.id == event.idPista}" th:text="${track.nome}"></span>
+                                    <span th:if="${!#lists.contains(tracks.![id], event.idPista)}" th:text="'Pista ID: ' + ${event.idPista}"></span>
+                                </span> |
+                <strong>Organizzatore ID:</strong>
+                <span th:text="${event.idOrganizzatore}"></span>
+              </p>
+              <p class="mb-0 small text-muted">
+                <strong>Evento ID:</strong>
+                <span class="event-id" th:text="${event.id}"></span> |
+                <strong>Pista ID:</strong>
+                <span class="event-track-id" th:text="${event.idPista}"></span>
+              </p>
+            </div>
+            <div class="ms-3">
+              <button class="btn btn-sm btn-outline-primary promote-event-btn"
+                      th:attr="data-event-id=${event.id}">
+                Promuovi
+              </button>
+            </div>
+          </div>
+        </div>
+        <div th:if="${events.empty}" class="text-muted">
+          Nessun evento trovato
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // SEZIONE 1: Creazione Track
+  document.getElementById('createTrackForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    createTrack();
+  });
+
+  function createTrack() {
+    const trackData = {
+      nome: document.getElementById('trackNome').value,
+      citta: document.getElementById('trackCitta').value,
+      regione: document.getElementById('trackRegione').value,
+      grado: "Base",
+      lunghezza: 1000
+    };
+
+    fetch('/api/tracks', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(trackData)
+    })
+            .then(response => response.json())
+            .then(data => {
+              alert('Pista creata! ID: ' + data.id);
+              location.reload();
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              alert('Errore nella creazione della pista');
+            });
+  }
+
+  // SEZIONE 2: Gestione Video
+  function addPromotedVideo() {
+    const link = document.getElementById('videoLink').value;
+    if (!link) {
+      alert('Inserisci un link video');
+      return;
+    }
+
+    console.log('Adding video:', link);
+
+    fetch('/api/homepage/promoted-videos', {
+      method: 'PUT',
+      headers: {'Content-Type': 'text/plain'},
+      body: link
+    })
+            .then(response => {
+              if (response.ok) {
+                alert('Video aggiunto!');
+                location.reload();
+              } else {
+                alert('Errore nell\'aggiunta del video');
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              alert('Errore nell\'aggiunta del video');
+            });
+  }
+
+  // SEZIONE 3: Gestione Eventi Promossi
+  function removePromotedEvent(eventId) {
+    if (confirm('Rimuovere questo evento dalla homepage?')) {
+      console.log('Removing promoted event:', eventId);
+
+      fetch('/api/homepage/promoted-events/' + eventId, {
+        method: 'DELETE'
+      })
+              .then(response => {
+                if (response.ok) {
+                  alert('Evento rimosso dalla homepage!');
+                  location.reload();
+                } else {
+                  alert('Errore nella rimozione dell\'evento');
+                }
+              })
+              .catch(error => {
+                console.error('Error:', error);
+                alert('Errore nella rimozione dell\'evento');
+              });
+    }
+  }
+
+  // SEZIONE 4: Gestione Eventi e Filtri
+  function promoteEvent(eventId) {
+    if (confirm('Promuovere questo evento in homepage?')) {
+      console.log('Promoting event:', eventId);
+
+      fetch('/api/homepage/promoted-events/' + eventId, {
+        method: 'PUT'
+      })
+              .then(response => {
+                if (response.ok) {
+                  alert('Evento promosso in homepage!');
+                  location.reload();
+                } else {
+                  alert('Errore nella promozione dell\'evento');
+                }
+              })
+              .catch(error => {
+                console.error('Error:', error);
+                alert('Errore nella promozione dell\'evento');
+              });
+    }
+  }
+
+  // Filtri Combinati
+  function applyFilters() {
+    const dateFrom = document.getElementById('filterDateFrom').value;
+    const dateTo = document.getElementById('filterDateTo').value;
+    const trackId = document.getElementById('filterTrack').value;
+
+    const events = document.querySelectorAll('#eventsList .event-item');
+    let visibleCount = 0;
+
+    events.forEach(event => {
+      const dateText = event.querySelector('.event-date').textContent;
+      const eventDate = parseDate(dateText);
+      const eventTrackId = event.querySelector('.event-track-id').textContent;
+
+      let showEvent = true;
+
+      // Filtro Data
+      if (dateFrom) {
+        const fromDate = new Date(dateFrom + 'T00:00:00');
+        if (eventDate < fromDate) {
+          showEvent = false;
+        }
+      }
+
+      if (dateTo) {
+        const toDate = new Date(dateTo + 'T23:59:59');
+        if (eventDate > toDate) {
+          showEvent = false;
+        }
+      }
+
+      // Filtro Pista
+      if (trackId && eventTrackId !== trackId) {
+        showEvent = false;
+      }
+
+      event.style.display = showEvent ? 'block' : 'none';
+      if (showEvent) visibleCount++;
+    });
+
+    // Mostra messaggio se nessun evento visibile
+    const noEventsMsg = document.querySelector('#eventsList .text-muted');
+    if (noEventsMsg) {
+      noEventsMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+  }
+
+  function clearFilters() {
+    document.getElementById('filterDateFrom').value = '';
+    document.getElementById('filterDateTo').value = '';
+    document.getElementById('filterTrack').value = '';
+
+    // Mostra tutti gli eventi
+    document.querySelectorAll('#eventsList .event-item').forEach(event => {
+      event.style.display = 'block';
+    });
+
+    // Nascondi messaggio "nessun evento"
+    const noEventsMsg = document.querySelector('#eventsList .text-muted');
+    if (noEventsMsg && document.querySelectorAll('#eventsList .event-item[style="display: block;"]').length > 0) {
+      noEventsMsg.style.display = 'none';
+    }
+  }
+
+  function parseDate(dateString) {
+    try {
+      // Converte "dd/MM/yyyy HH:mm" in Date object
+      const parts = dateString.split(' ');
+      const dateParts = parts[0].split('/');
+      const timeParts = parts[1].split(':');
+
+      return new Date(
+              parseInt(dateParts[2]), // year
+              parseInt(dateParts[1]) - 1, // month (0-based)
+              parseInt(dateParts[0]), // day
+              parseInt(timeParts[0]), // hours
+              parseInt(timeParts[1])  // minutes
+      );
+    } catch (e) {
+      console.error('Error parsing date:', dateString, e);
+      return new Date(); // Return current date as fallback
+    }
+  }
+
+  // Event listener per tutti i pulsanti
+  document.addEventListener('DOMContentLoaded', function() {
+    // Rimozione video
+    document.querySelectorAll('.remove-video-btn').forEach(button => {
+      button.addEventListener('click', function() {
+        const videoLink = this.getAttribute('data-video-link');
+        removePromotedVideo(videoLink);
+      });
+    });
+
+    // Rimozione eventi promossi
+    document.querySelectorAll('.remove-promoted-event-btn').forEach(button => {
+      button.addEventListener('click', function() {
+        const eventId = this.getAttribute('data-event-id');
+        removePromotedEvent(eventId);
+      });
+    });
+
+    // Promozione eventi
+    document.querySelectorAll('.promote-event-btn').forEach(button => {
+      button.addEventListener('click', function() {
+        const eventId = this.getAttribute('data-event-id');
+        promoteEvent(eventId);
+      });
+    });
+
+    // Imposta data di oggi come default per "Da"
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('filterDateFrom').value = today;
+  });
+
+  function removePromotedVideo(videoLink) {
+    if (confirm('Rimuovere questo video?')) {
+      console.log('Removing video:', videoLink);
+
+      fetch('/api/homepage/promoted-videos', {
+        method: 'DELETE',
+        headers: {'Content-Type': 'text/plain'},
+        body: videoLink
+      })
+              .then(response => {
+                if (response.ok) {
+                  alert('Video rimosso!');
+                  location.reload();
+                } else {
+                  alert('Errore nella rimozione del video');
+                }
+              })
+              .catch(error => {
+                console.error('Error:', error);
+                alert('Errore nella rimozione del video');
+              });
+    }
+  }
+</script>
+</body>
+</html>
